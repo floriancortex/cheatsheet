@@ -1,0 +1,1 @@
+# How to install openslides in Ubuntu Server 20.4

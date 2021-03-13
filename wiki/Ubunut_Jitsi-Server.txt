@@ -1,0 +1,111 @@
+# How to install Jitsi Server in Ubuntu 20.04 LTS
+# Jitsi Meet ist ein quelloffenes Videokonferenzsystem, das ohne Anmeldung und Installation in einem Webbrowser genutzt werden kann. Durch die einfache Installation kann sehr einfach ein eigener Jitsi Meet Server installiert werden.
+
+## Vorbereitungen
+Für einen reibungslosen Betrieb muss in der Datei /etc/systemd/system.conf die Anzahl der zulässigen Prozesse eingetragen werden. Dazu müssen die folgenden Einträge am Ende hinzugefügt werden:
+
+DefaultLimitNOFILE=65000    
+DefaultLimitNPROC=65000    
+DefaultTasksMax=65000 
+
+Damit die Einträge wirksam sind, muss der Dienst Systemd neugestartet werden:
+
+# systemctl daemon-reload
+
+Als nächster Schritt muss die verwendete Domain konfiguriert werden, damit die verschiedenen Module von Jitsi Meet reibungslos zusammenarbeiten können.
+
+# hostnamectl set-hostname meet.scheible.it
+
+Zusätzlich muss in der Datei /etc/hosts ebenfalls die Domain als localhost eingetragen werden. Dazu kann die Domain einfach in der ersten Zeile am Ende hinzugefügt werden.
+
+# nano /etc/hosts  
+127.0.0.1 localhost.localdomain localhost meet.scheible.it
+
+Als Erstes wird das System auf den aktuellen Stand gebracht und alle Ubuntu Updates installiert:
+
+# apt update && apt upgrade  
+
+Jetzt muss überprüft werden, ob das universe Repositorie eingerichtet ist. Dies kann mit dem folgenden Befehl überprüft werden:
+
+# grep ^deb /etc/apt/sources.list  
+In der folgenden Ausgabe muss der folgende Eintrag vorhanden sein:
+
+deb http://de.archive.ubuntu.com/ubuntu/ focal universe  
+Falls nicht, müssen die folgenden Befehle ausgeführt werden:
+
+# apt install software-properties-common  
+# apt-add-repository universe  
+Jetzt muss noch das folgende Paket installiert werden:
+
+# apt install apt-transport-https
+
+## Installation
+
+Nun kann die eigentliche Installation von Jitsi Meet beginnen. Als Erstes werden die Software-Quellen von Jitsi Meet mit den nachfolgenden beiden Zeilen hinzugefügt und die Paketquelle aktualisiert.
+
+# curl https://download.jitsi.org/jitsi-key.gpg.key | sh -c 'gpg --dearmor > /usr/share/keyrings/jitsi-keyring.gpg'  
+# echo 'deb [signed-by=/usr/share/keyrings/jitsi-keyring.gpg] https://download.jitsi.org stable/' | tee /etc/apt/sources.list.d/jitsi-stable.list > /dev/null  
+# apt update
+
+# apt -y install jitsi-meet
+
+Nachdem die Jitsi Meet Pakete heruntergeladen und installiert worden sind, erfolgt eine Abfrage der Domain und der SSL-Konfiguration.
+1. Eingabe des vollständigen FQDN (Hostname+Domain)
+2. "Generate a new self-signed certificate...
+
+## SSL-Zertifikat
+Als Nächstes muss noch das Let’s Encrypt Zertifikat für die sichere HTTPS-Verbindung eingerichtet werden. Die Einrichtung des Let’s Encrypt Zertifikat für Jitsi Meet kann mit dem folgenden Script gestartet werden: 
+#/usr/share/jitsi-meet/scripts/install-letsencrypt-cert.sh
+Jetzt kann die Domain aufgerufen werden und das Web-Interface von Jitsi Meet wird angezeigt
+
+## STUN/TURN-Server
+Die Technologie der STUN-Server kommt aus dem VoIP-Bereich und ermöglicht es einem Rechner hinter einer restriktiven Firewall trotzdem eine Verbindung aufzubauen. 
+Mit dem TURN-Protokoll können Teilnehmer Daten austauschen, auch wenn keine direkte Verbindung besteht. Der Server dient dabei als Relay (Zwischenstation). 
+In früheren Versionen nutzte Jitsi Meet hierfür STUN/TURN-Server von Google und wurde dafür kritisiert. Mit den Updates im April 2020 wurden diese Einträge entfernt und durch den eigenen Server von Jitsi meet-jit-si-turnrelay.jitsi.net ersetzt.
+
+Mit weiteren Updates wurde eine einfache Methode realisiert, um einen eigenen coturn STUN/TURN-Server einzurichten. Das Paket jitsi-meet-turnserver sollte bereits automatisch installiert worden sein. Falls nicht, kann es auch manuell installiert werden:
+
+$ sudo apt install jitsi-meet-turnserver 
+In früheren Varianten musste anschließend noch eine Konfiguration vorgenommen werden, diese wird mittlerweile automatisiert durchgeführt.
+
+Firewall
+Als letzter Schritt muss noch der Port 3478 für UDP-Datenverkehr und der Port 5349 für TCP -Datenverkehr in der Firewall freigegeben werden:
+$ sudo ufw allow 3478/udp
+$ sudo ufw allow 10000/udp  
+$ sudo ufw allow 5349/tcp
+
+Nun wird ein eigener STUN/TURN-Server verwendet. In den Konfigurationsdateien /etc/prosody/conf.avail/meet.scheible.it.cfg.lua und /etc/jitsi/meet/meet.scheible.it-config.js wurden automatisch die richtigen Parameter eingefügt. 
+Mit dem Trickle ICE Tool, kann die Funktionsweise getestet werden. Dort muss in das Feld STUN or TURN URI die eigene Domain, nach dem Schema stun:meet.exmaple.com:3478, eingetragen werden. 
+Mit dem Button „Add Server“ wird er in die Liste aufgenommen und der Test wird dem Button „Gather candidates“ gestartet. Wenn alles in Ordnung ist, erscheint nach kurzer Zeit rechts unten als Bestätigung der Begriff „Done“.
+
+Wird die Konfiguration Secure Domain von Jitsi Meet verwendet, wird in der Prosody Konfigurationsdatei meet.scheible.it.cfg.lua ein neuer VirtualHost Eintrag für Gäste hinzugefügt. 
+Hierbei kann es zu Problemen kommen, dass der TURN-Server für Gäste nicht mehr korrekt funktioniert. Das liegt daran, dass für den Gast-Eintrag auch das Modul turncredentials eingebunden werden muss.
+
+// /etc/prosody/conf.d/meet.scheible.it.cfg.lua  
+VirtualHost "guest.meet.example.com"  
+    authentication = "anonymous"  
+     modules_enabled = {  
+            "bosh";  
+            "pubsub";  
+            "ping"; -- Enable mod_ping  
+            "speakerstats";  
+            "turncredentials";  
+            "conference_duration";  
+          --  "muc_lobby_rooms";  
+        }  
+    c2s_require_encryption = false
+
+## Fehlerbehebung Audio/Video
+sed -i -e 431c"\        enabled: true," /etc/jitsi/meet/cortexsrv01.microcortex.de-config.js
+sed -i -e 438c"\        ]," /etc/jitsi/meet/cortexsrv01.microcortex.de-config.js
+root@cortexsrv01:/etc/jitsi/meet# service jitsi-videobridge2 restart
+
+
+
+## Jitsi Meet Aktualisierung
+sudo apt-get update && sudo apt-get upgrade
+
+Hinweis: Bei der Aktualisierung werden zum Teil die Konfigurationsdateien überschrieben. Daher bietet es sich an ein spezielles Update Script zu verwenden:
+https://scheible.it/jitsi-meet-server-update-script/
+
+Welche Version von Jitsi Meet derzeit installiert ist, kann übrigens mit dem folgenden Befehl abgefragt werden:
