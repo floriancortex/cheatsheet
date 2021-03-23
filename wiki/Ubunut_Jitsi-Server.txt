@@ -100,6 +100,10 @@ sed -i -e 431c"\        enabled: true," /etc/jitsi/meet/cortexsrv01.microcortex.
 sed -i -e 438c"\        ]," /etc/jitsi/meet/cortexsrv01.microcortex.de-config.js
 root@cortexsrv01:/etc/jitsi/meet# service jitsi-videobridge2 restart
 
+https://blog.wydler.eu/2020/04/04/eigener-turn-server-fuer-jitsi-meet-bereitstellen/
+https://blog.wydler.eu/2020/03/22/einrichten-von-jitsi-meet-kostenlose-videokonferenzen-fuer-alle/#installation-jitsi-meet
+
+
 
 
 ## Jitsi Meet Aktualisierung
