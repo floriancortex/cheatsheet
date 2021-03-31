@@ -1,0 +1,7 @@
+acme:
+  mail: florian@koppold.org
+  production: true
+
+app:
+  name: srv
+  domain: die-linke-muc.de

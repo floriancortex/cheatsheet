@@ -1,0 +1,27 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "team-chat.fullname" . }}-rc
+  namespace: default
+spec:
+  ports:
+    - protocol: TCP
+      name: web
+      port: 3000
+      targetPort: 3000
+  selector:
+    app: {{ include "team-chat.fullname" . }}-rc
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "team-chat.fullname" . }}-mongo
+  namespace: default
+spec:
+  ports:
+    - protocol: TCP
+      name: mongo
+      port: 27017
+      targetPort: 27017
+  selector:
+    environment: {{ include "team-chat.fullname" . }}-mongo
