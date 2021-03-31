@@ -1,0 +1,10 @@
+/var/lib/rancher/k3s/agent/containerd/io.containerd.snapshotter.v1.overlayfs/snapshots/129/fs/usr/local/lib/python3.8/site-packages/openslides/utils
+
+# Email settings
+# For SSL/TLS specific settings see https://docs.djangoproject.com/en/1.11/topics/email/#smtp-backend
+
+EMAIL_HOST = 'smtp.1und1.de'
+EMAIL_PORT = '25'
+EMAIL_HOST_USER = 'anmeldung@dielinke-muc.de'
+EMAIL_HOST_PASSWORD = 'Anmeldung!=21'
+DEFAULT_FROM_EMAIL = 'anmeldung@dielinke-muc.de'
